@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fraud Detector - Rural India</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .hindi {
+            text-align: center;
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            margin-bottom: 20px;
+            font-family: inherit;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .result.safe {
+            background: #d4edda;
+            border: 2px solid #28a745;
+        }
+        
+        .result.suspicious {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+        }
+        
+        .result.danger {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+        }
+        
+        .result h2 {
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+        
+        .result.safe h2 { color: #28a745; }
+        .result.suspicious h2 { color: #e67e00; }
+        .result.danger h2 { color: #dc3545; }
+        
+        .result-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255,255,255,0.7);
+            border-radius: 5px;
+        }
+        
+        .result-label {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .advice {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-weight: bold;
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .helpline {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px dashed #667eea;
+        }
+        
+        .helpline-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #dc3545;
+            margin: 10px 0;
+        }
+        
+        .example {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .example strong {
+            color: #333;
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ AI Fraud Detector</h1>
+        <div class="subtitle">Protect yourself from SMS/WhatsApp scams</div>
+        <div class="hindi">धोखाधड़ी से बचें - तुरंत जांचें</div>
+        
+        <textarea id="messageInput" placeholder="Paste suspicious message here...
+
+Example:
+Congratulations! You won Rs 10 lakh lottery. Pay Rs 500 processing fee to claim your prize.
+
+या
+
+आपको 10 लाख रुपये का लॉटरी मिला है। अभी 500 रुपये भेजें।"></textarea>
+        
+        <button onclick="analyzeMessage()">🔍 Check for Fraud</button>
+        
+        <div class="loading" id="loading">Analyzing message...</div>
+        
+        <div class="result" id="result">
+            <h2 id="resultTitle"></h2>
+            <div class="result-item">
+                <span class="result-label">Risk Level:</span>
+                <span id="riskLevel"></span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">Risk Score:</span>
+                <span id="riskScore"></span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">Fraud Type:</span>
+                <span id="fraudType"></span>
+            </div>
+            <div class="advice">
+                <strong>⚠️ Safety Advice:</strong>
+                <p id="safetyAdvice"></p>
+            </div>
+        </div>
+        
+        <div class="helpline">
+            <strong>Report Cybercrime:</strong>
+            <div class="helpline-number">📞 1930</div>
+            <small>National Cybercrime Helpline (India)</small>
+        </div>
+        
+        <div class="example">
+            <strong>How to use:</strong>
+            1. Copy suspicious SMS/WhatsApp message<br>
+            2. Paste it in the box above<br>
+            3. Click "Check for Fraud"<br>
+            4. Get instant fraud risk analysis
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = 'http://localhost:8000/api/mobile/quick-check';
+        
+        async function analyzeMessage() {
+            const message = document.getElementById('messageInput').value.trim();
+            
+            if (!message) {
+                alert('Please paste a message to analyze');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Analysis failed');
+                }
+                
+                const data = await response.json();
+                displayResult(data);
+                
+            } catch (error) {
+                alert('Error: ' + error.message + '\n\nMake sure the FastAPI server is running on port 8000');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+        
+        function displayResult(data) {
+            const resultDiv = document.getElementById('result');
+            const riskLevel = data.risk_level || 'Unknown';
+            const riskScore = data.risk_score || 0;
+            
+            // Set title and styling based on risk level
+            let className = 'safe';
+            let title = '✅ Message Appears Safe';
+            
+            if (riskLevel === 'High Risk') {
+                className = 'danger';
+                title = '🚨 HIGH RISK - LIKELY FRAUD!';
+            } else if (riskLevel === 'Suspicious') {
+                className = 'suspicious';
+                title = '⚠️ SUSPICIOUS MESSAGE';
+            }
+            
+            // Update result display
+            resultDiv.className = 'result ' + className;
+            document.getElementById('resultTitle').textContent = title;
+            document.getElementById('riskLevel').textContent = riskLevel;
+            document.getElementById('riskScore').textContent = riskScore.toFixed(1) + '%';
+            document.getElementById('fraudType').textContent = data.fraud_type || 'None Detected';
+            document.getElementById('safetyAdvice').textContent = data.quick_advice || 'Always verify sender before sharing personal information.';
+            
+            // Show result
+            resultDiv.style.display = 'block';
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        // Allow Enter key to submit (Ctrl+Enter for new line)
+        document.getElementById('messageInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                analyzeMessage();
+            }
+        });
+    </script>
+</body>
+</html>

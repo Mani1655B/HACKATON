@@ -1,0 +1,98 @@
+# Python Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Hugging Face Model Cache (Large files)
+.cache/
+models/
+*.bin
+*.safetensors
+
+# SQLite Database
+*.db
+*.sqlite
+*.sqlite3
+fraud_detection.db
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-workspace
+*.sublime-project
+
+# OS Files
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+*.log
+
+# FastAPI/Uvicorn
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Temporary Files
+*.tmp
+temp/
+tmp/
+*.bak
+
+# Audio/Media Temp Files (from audio processing)
+*.wav
+*.mp3
+*.ogg
+*.m4a
+temp_audio/
+audio_cache/
+
+# Build & Distribution
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+
+# Node (if using frontend build)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# IDE Python
+.pytype/
+.dmypy.json
+dmypy.json
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# VS Code Settings (keep local, don't commit)
+.vscode/settings.json
+.vscode/launch.json
+
+# Project Specific
+uploads/
+evidence/
+*.zip
+logs/
+
+# Generated files
+*.pyc
+.Python

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fraud Risk Detection System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 120px;
+            font-family: inherit;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 30px;
+            border-radius: 15px;
+            display: none;
+        }
+
+        .result.safe {
+            background: #d4edda;
+            border: 2px solid #28a745;
+        }
+
+        .result.suspicious {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+        }
+
+        .result.high-risk {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+        }
+
+        .risk-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .risk-level {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .risk-score {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .detail-row {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255,255,255,0.7);
+            border-radius: 8px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            color: #555;
+        }
+
+        .entities {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .entity-tag {
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .reasoning-list {
+            list-style: none;
+        }
+
+        .reasoning-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .reasoning-list li:before {
+            content: "•";
+            position: absolute;
+            left: 10px;
+            color: #667eea;
+            font-size: 20px;
+        }
+
+        .helpline {
+            margin-top: 20px;
+            padding: 20px;
+            background: #333;
+            color: white;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .helpline-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffc107;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .examples {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .example-btn {
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .example-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ AI Fraud Risk Detection System</h1>
+        <p class="subtitle">Digital Awareness & Safety for Everyone | No Keywords, Pure AI</p>
+
+        <div class="input-section">
+            <label for="message">Enter SMS/Message to Analyze:</label>
+            <textarea 
+                id="message" 
+                placeholder="Paste your message here (e.g., SMS, WhatsApp, Email)..."
+            ></textarea>
+        </div>
+
+        <button class="btn" onclick="analyzeMessage()">🔍 Analyze Message</button>
+
+        <div class="examples">
+            <strong>Quick Test Examples:</strong><br>
+            <button class="example-btn" onclick="setExample('URGENT! You won a lottery. Pay Rs 500 to claim Rs 10 lakh prize.')">Lottery Scam</button>
+            <button class="example-btn" onclick="setExample('Your UPI payment request from unknown number. Approve now to avoid account block.')">UPI Fraud</button>
+            <button class="example-btn" onclick="setExample('Work from home, earn 50k monthly. Pay Rs 2000 registration fee.')">Job Scam</button>
+            <button class="example-btn" onclick="setExample('Hi, are you free for coffee tomorrow?')">Safe Message</button>
+        </div>
+
+        <div id="loading" class="loading" style="display: none; margin-top: 20px;">
+            Analyzing with AI models... Please wait ⏳
+        </div>
+
+        <div id="result" class="result">
+            <div class="risk-header">
+                <div>
+                    <div class="risk-level" id="riskLevel"></div>
+                    <div style="font-size: 14px; color: #666;">Risk Assessment</div>
+                </div>
+                <div class="risk-score" id="riskScore"></div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">🎯 Fraud Type Detected</div>
+                <div class="detail-value" id="fraudType"></div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">📊 Model Confidence</div>
+                <div class="detail-value">
+                    Fraud Classification: <strong id="fraudConfidence"></strong> | 
+                    Spam Score: <strong id="spamScore"></strong>
+                </div>
+            </div>
+
+            <div class="detail-row" id="entitiesSection" style="display: none;">
+                <div class="detail-label">🔍 Suspicious Elements Detected</div>
+                <div class="entities" id="entities"></div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">🧠 AI Reasoning</div>
+                <ul class="reasoning-list" id="reasoning"></ul>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">💡 Safety Advice</div>
+                <div class="detail-value" id="safetyAdvice"></div>
+            </div>
+
+            <div class="helpline">
+                <div>🚨 Report Cybercrime Immediately</div>
+                <div class="helpline-number">☎️ 1930</div>
+                <div style="font-size: 14px; margin-top: 5px;">National Cybercrime Helpline (India)</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+
+        function setExample(text) {
+            document.getElementById('message').value = text;
+        }
+
+        async function analyzeMessage() {
+            const message = document.getElementById('message').value.trim();
+            
+            if (!message) {
+                alert('Please enter a message to analyze');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_URL}/api/analyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Analysis failed');
+                }
+
+                const data = await response.json();
+                displayResult(data);
+
+            } catch (error) {
+                alert('Error: ' + error.message + '\n\nMake sure the API server is running (python main.py)');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function displayResult(data) {
+            const resultDiv = document.getElementById('result');
+            
+            // Set risk level styling
+            resultDiv.className = 'result';
+            if (data.risk_level === 'Safe') {
+                resultDiv.classList.add('safe');
+            } else if (data.risk_level === 'Suspicious') {
+                resultDiv.classList.add('suspicious');
+            } else {
+                resultDiv.classList.add('high-risk');
+            }
+
+            // Populate data
+            document.getElementById('riskLevel').textContent = data.risk_level;
+            document.getElementById('riskScore').textContent = data.risk_score + '%';
+            document.getElementById('fraudType').textContent = data.fraud_type;
+            document.getElementById('fraudConfidence').textContent = data.fraud_confidence.toFixed(1) + '%';
+            document.getElementById('spamScore').textContent = data.spam_score.toFixed(1) + '%';
+            document.getElementById('safetyAdvice').textContent = data.safety_advice;
+
+            // Entities
+            const entitiesDiv = document.getElementById('entities');
+            const entitiesSection = document.getElementById('entitiesSection');
+            
+            if (data.entities_detected && data.entities_detected.length > 0) {
+                entitiesSection.style.display = 'block';
+                entitiesDiv.innerHTML = '';
+                data.entities_detected.forEach(entity => {
+                    const tag = document.createElement('span');
+                    tag.className = 'entity-tag';
+                    tag.textContent = `${entity.entity} (${entity.type})`;
+                    entitiesDiv.appendChild(tag);
+                });
+            } else {
+                entitiesSection.style.display = 'none';
+            }
+
+            // Reasoning
+            const reasoningList = document.getElementById('reasoning');
+            reasoningList.innerHTML = '';
+            data.reasoning.forEach(reason => {
+                const li = document.createElement('li');
+                li.textContent = reason;
+                reasoningList.appendChild(li);
+            });
+
+            // Show result
+            resultDiv.style.display = 'block';
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
