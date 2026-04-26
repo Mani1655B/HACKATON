@@ -1,14 +1,32 @@
+# FastAPI & Web Framework
 fastapi==0.109.0
 uvicorn==0.27.0
+python-multipart==0.0.6
+
+# Database & ORM
 sqlalchemy==2.0.25
+
+# Data & ML Core
 pydantic==2.5.3
+numpy<2
 transformers==4.37.0
 torch>=2.4.0
-python-multipart==0.0.6
-numpy<2
 tokenizers>=0.14.0
+
+# Image Processing
 pillow==10.1.0
 easyocr==1.7.1
-SpeechRecognition==3.10.1
+
+# Audio Processing
 pydub==0.25.1
+moviepy==1.0.3
+librosa==0.10.0
+imageio-ffmpeg==0.6.0
+scipy>=1.11.0
+
+# API & Network
 requests>=2.31.0
+
+# Utilities
+decorator>=4.4.0
+imageio>=2.25.0

@@ -4,6 +4,7 @@ from typing import Dict, List, Tuple
 import re
 import requests
 from urllib.parse import urlparse
+from collections import defaultdict
 
 # Configure logging
 logging.basicConfig(
@@ -24,12 +25,15 @@ class FraudDetectionSystem:
         logger.info("Initializing AI models...")
         
         try:
-            # Model 1: Spam Detection (Fast, lightweight)
+            # Model 1: Spam Detection - MULTILINGUAL (English, Hindi, +many languages)
+            # Zero-shot NLI is more reliable for fraud/spam intent than toxicity models.
             self.spam_detector = pipeline(
-                "text-classification",
-                model="SharpWoofer/distilroberta-sms-spam-detector"
+                "zero-shot-classification",
+                model="MoritzLaurer/mDeBERTa-v3-base-mnli-xnli",
+                device=-1
             )
-            logger.info("[OK] Spam detection model loaded")
+            self.spam_mode = "zero_shot"
+            logger.info("[OK] Multilingual zero-shot spam detector loaded")
 
             # Skip large BART model - use keyword patterns
             self.fraud_classifier = None
@@ -46,35 +50,81 @@ class FraudDetectionSystem:
                 "normal message"
             ]
 
-            # Comprehensive fraud detection keywords
+            # Comprehensive fraud detection keywords (English + Hindi)
             self.fraud_keywords = {
                 "Upi Fraud": [
                     "upi", "payment", "transfer", "scan", "collect", "approve", "request",
                     "gpay", "paytm", "phonepe", "bhim", "qr code", "rupee", "withdraw",
                     "confirm transaction", "verify payment", "authorize", "release amount"
                 ],
+                "Upi Fraud (Hindi)": [
+                    "upi", "payment", "भुगतान", "transfer", "स्थानांतरण", "scan", "स्कैन",
+                    "collect", "approve", "qr", "क्यूआर", "code", "gpay", "paytm", "phonepe",
+                    "bhim", "bheem", "rupee", "रुपये", "withdraw", "निकालना", "verify",
+                    "verify payment", "transaction", "लेनदेन", "confirm", "पुष्टि", "release",
+                    "amount", "रकम", "authorize", "अधिकृत"
+                ],
                 "Job Scam": [
                     "job", "work", "home", "registration", "fee", "earn", "hiring", "applicant",
                     "interview", "offer", "position", "vacancy", "salary", "part-time", "full-time",
                     "commission", "bonus", "training", "placement", "appointment letter", "submit documents"
-                ],
+                    ],
+                    "Job Scam (Hindi)": [
+                        "job", "नौकरी", "काम", "work", "घर", "home", "registration", "पंजीकरण",
+                        "fee", "शुल्क", "earn", "कमाना", "earning", "कमाई", "hiring", "नियुक्ति",
+                        "applicant", "आवेदक", "interview", "साक्षात्कार", "offer", "प्रस्ताव",
+                        "position", "पद", "vacancy", "रिक्ति", "salary", "वेतन", "part-time",
+                        "पूर्णकालिक", "commission", "कमीशन", "bonus", "बोनस", "training", "प्रशिक्षण",
+                        "placement", "प्लेसमेंट", "appointment", "नियुक्ति", "letter", "पत्र",
+                        "submit", "जमा", "documents", "दस्तावेज"
+                    ],
                 "Lottery Scam": [
                     "lottery", "won", "prize", "claim", "congratulations", "reward", "win",
                     "draw", "lucky", "selected", "claim prize", "process", "tax", "fee",
                     "scratch card", "raffle", "fortune", "bonus", "jackpot", "advance payment"
-                ],
+                    ],
+                    "Lottery Scam (Hindi)": [
+                        "lottery", "लॉटरी", "won", "जीते", "prize", "पुरस्कार", "claim", "दावा",
+                        "congratulations", "बधाई", "reward", "इनाम", "win", "जीतना", "draw",
+                        "आरेखण", "lucky", "भाग्यशाली", "selected", "चयनित", "process", "प्रक्रिया",
+                        "tax", "कर", "fee", "शुल्क", "scratch", "स्क्रैच", "card", "कार्ड",
+                        "raffle", "रैफल", "fortune", "भाग्य", "bonus", "बोनस", "jackpot",
+                        "advance", "अग्रिम", "payment", "भुगतान", "confirmation", "पुष्टि",
+                        "जीती", "जीता", "क्लेम", "फीस", "प्रोसेसिंग", "भेजें", "भेजो"
+                    ],
                 "Phishing": [
                     "verify", "password", "click", "secure", "confirm", "update", "account",
                     "email", "bank", "urgent", "expires", "lockout", "suspended", "blocked",
                     "instgram", "facebook", "whatsapp", "link", "login", "credentials",
                     "card number", "cvv", "otp", "pin", "confirm identity", "re-verify",
                     "unusual activity", "suspicious", "action required", "immediately"
-                ],
+                    ],
+                    "Phishing (Hindi)": [
+                        "verify", "सत्यापित", "password", "पासवर्ड", "click", "क्लिक", "secure",
+                        "सुरक्षित", "confirm", "पुष्टि", "update", "अद्यतन", "account", "खाता",
+                        "email", "ईमेल", "bank", "बैंक", "urgent", "जरूरी", "expires", "समाप्त",
+                        "lockout", "लॉकआउट", "suspended", "निलंबित", "blocked", "अवरुद्ध",
+                        "facebook", "फेसबुक", "whatsapp", "व्हाट्सएप", "link", "लिंक",
+                        "login", "लॉगिन", "credentials", "साख", "card", "कार्ड", "cvv",
+                        "otp", "pin", "पिन", "identity", "पहचान", "unusual", "असामान्य",
+                        "activity", "गतिविधि", "suspicious", "संदिग्ध", "action", "कार्रवाई",
+                        "required", "आवश्यक", "immediately", "तुरंत"
+                    ],
                 "Investment Scam": [
                     "investment", "crypto", "profit", "bitcoin", "forex", "guaranteed", "returns",
                     "share market", "stock", "mutual fund", "trading", "multiply money", "double",
                     "high return", "risk free", "fast money", "passive income", "deposit"
-                ],
+                    ],
+                    "Investment Scam (Hindi)": [
+                        "investment", "निवेश", "crypto", "क्रिप्टो", "profit", "लाभ", "bitcoin",
+                        "बिटकॉइन", "forex", "फॉरेक्स", "guaranteed", "गारंटीकृत", "returns",
+                        "रिटर्न", "share", "शेयर", "market", "बाजार", "stock", "स्टॉक",
+                        "mutual", "म्यूचुअल", "fund", "फंड", "trading", "व्यापार", "multiply",
+                        "गुणा", "money", "पैसा", "double", "दोगुना", "high", "उच्च", "return",
+                        "रिटर्न", "risk", "जोखिम", "free", "मुफ्त", "fast", "तेजी", "passive",
+                        "निष्क्रिय", "income", "आय", "deposit", "जमा", "passive income",
+                        "आय"
+                    ],
             }
 
             logger.info("[SUCCESS] All models initialized successfully")
@@ -164,107 +214,117 @@ class FraudDetectionSystem:
             return False, "Unable to validate"
 
     def detect_spam(self, message: str) -> Tuple[float, str]:
-        """Detect spam probability using AI model with smart calibration"""
+        """Detect spam probability using multilingual zero-shot model + calibration"""
         try:
-            # Get raw model prediction
-            result = self.spam_detector(message)[0]
-            label = result['label']
-            raw_score = result['score'] * 100
-            
-            # Smart calibration: Adjust based on message characteristics
-            adjusted_score = raw_score
-            
-            # Check if message has conversational patterns (safe indicators)
-            safe_patterns = [
-                r'\bhow\s+are\s+you\b',
-                r'\bhello\b',
-                r'\bhi\b',
-                r'\bthanks\b',
-                r'\bplease\b',
-                r'\bwhen\b',
-                r'\bwhere\b',
-                r'\bwhat\b',
-                r'\bwhy\b',
-                r'\bwhat\'s\b',
-                r'\byou\s+ok\b'
-            ]
-            
             message_lower = message.lower()
-            has_safe_pattern = any(re.search(pattern, message_lower) for pattern in safe_patterns)
-            
-            # Check for fraud keywords (danger indicators)
-            fraud_patterns = [
-                r'\blottery\b',
-                r'\bwon\b',
-                r'\bclick\b',
-                r'\bupi\b',
-                r'\bpayment\b',
-                r'\bverify\b',
-                r'\bbank\b',
-                r'\bblocked\b',
-                r'\burge\b',
-                r'\bwork\s+from\s+home\b',
-                r'\bresistration\s+fee\b',
-                r'http[s]?://'
+
+            # Multilingual zero-shot fraud intent scoring
+            result = self.spam_detector(
+                message,
+                candidate_labels=[
+                    "fraudulent scam message",
+                    "legitimate normal message"
+                ],
+                hypothesis_template="This text is {}."
+            )
+
+            label_scores = {
+                label.lower(): score
+                for label, score in zip(result.get("labels", []), result.get("scores", []))
+            }
+            raw_score = label_scores.get("fraudulent scam message", 0.5) * 100
+
+            # Safe conversational patterns
+            safe_patterns = [
+                r'\bhow\s+are\s+you\b', r'\bhello\b', r'\bhi\b', r'\bthanks\b',
+                r'\bplease\b', r'\bwhen\b', r'\bwhere\b', r'\bwhat\b', r'\bwhy\b',
+                r'\bwhat\'s\b', r'\byou\s+ok\b', r'\bthank\s+you\b',
+                r'\bकैसे\s+हो\b', r'\bनमस्ते\b', r'\bधन्यवाद\b'
             ]
-            
-            has_fraud_keyword = any(re.search(pattern, message_lower) for pattern in fraud_patterns)
-            
-            # Calibration logic
-            if has_safe_pattern and not has_fraud_keyword:
-                # Clear conversational message = reduce spam score significantly
-                adjusted_score = max(raw_score * 0.2, 5)  # Min 5%, max 20% of original
-            elif has_fraud_keyword:
-                # Has fraud keywords = boost spam score
-                adjusted_score = min(raw_score * 1.2, 100)  # Boost by 20%
-            else:
-                # Normal case - slight reduction for very high scores
-                if raw_score > 95:
-                    adjusted_score = raw_score * 0.8  # Reduce extreme confidence
-            
+
+            # High-risk indicators (English + Hindi)
+            risk_patterns = [
+                r'\blottery\b', r'\bwon\b', r'\bclaim\b', r'\bscratch\s*card\b',
+                r'\bclick\b', r'\bverify\b', r'\bupi\b', r'\bupi\s*pin\b',
+                r'\botp\b', r'\bcvv\b', r'\bbank\b', r'\btransfer\b',
+                r'http[s]?://', r'\burgent\b', r'\bfee\b',
+                r'लॉटरी', r'जीते', r'इनाम', r'दावा', r'क्लिक', r'सत्यापित',
+                r'पिन', r'ओटीपी', r'बैंक', r'स्थानांतरण', r'बधाई', r'जीती', r'क्लेम', r'फीस', r'भेजें'
+            ]
+
+            has_safe_pattern = any(re.search(pattern, message_lower) for pattern in safe_patterns)
+            matched_risks = sum(bool(re.search(pattern, message_lower)) for pattern in risk_patterns)
+
+            adjusted_score = raw_score
+
+            # Strong boost for multiple risk indicators
+            if matched_risks >= 3:
+                adjusted_score = min(adjusted_score + 35, 100)
+            elif matched_risks == 2:
+                adjusted_score = min(adjusted_score + 20, 100)
+            elif matched_risks == 1:
+                adjusted_score = min(adjusted_score + 10, 100)
+
+            # Reduce only when clearly conversational and no risk terms
+            if has_safe_pattern and matched_risks == 0:
+                adjusted_score = max(adjusted_score * 0.35, 5)
+
+            label = "spam" if adjusted_score >= 50 else "ham"
             logger.info(f"Spam detection: {label} (raw: {raw_score:.2f}% -> adjusted: {adjusted_score:.2f}%)")
             return adjusted_score, label
-            
+
         except Exception as e:
             logger.error(f"Spam detection error: {e}")
             return 50.0, "unknown"
 
     def classify_fraud_type(self, message: str) -> Tuple[str, float]:
-        """Classify fraud type using intelligent keyword pattern matching"""
+        """Classify fraud type using multilingual weighted keyword scoring"""
         try:
             message_lower = message.lower()
-            scores = {}
-            
-            for fraud_type, keywords in self.fraud_keywords.items():
-                matches = 0
+            scores = defaultdict(float)
+
+            category_critical = {
+                "Upi Fraud": ["upi pin", "otp", "cvv", "approve collect", "collect request", "pin"],
+                "Job Scam": ["registration fee", "joining fee", "pay for job", "offer letter fee"],
+                "Lottery Scam": ["scratch card", "claim prize", "won", "jackpot", "processing fee", "क्लेम", "फीस", "जीती", "बधाई"],
+                "Phishing": ["verify account", "suspended", "blocked", "click link", "update kyc"],
+                "Investment Scam": ["guaranteed returns", "double money", "risk free", "crypto profit"]
+            }
+
+            for raw_type, keywords in self.fraud_keywords.items():
+                base_type = raw_type.replace(" (Hindi)", "")
+                unique_matches = set()
                 for keyword in keywords:
-                    # Check if keyword appears in message
-                    if keyword in message_lower:
-                        matches += 1
-                
-                # Calculate confidence: percentage of keywords matched
-                confidence = (matches / len(keywords)) * 100 if keywords else 0
-                scores[fraud_type] = confidence
-            
-            # Get the fraud type with highest score
+                    kw = keyword.strip().lower()
+                    if kw and kw in message_lower:
+                        unique_matches.add(kw)
+
+                match_count = len(unique_matches)
+                critical_hits = sum(1 for kw in category_critical.get(base_type, []) if kw in message_lower)
+
+                # Weighted score avoids dilution from long keyword lists.
+                # 8 points per match + 20 per critical phrase.
+                scores[base_type] += (match_count * 8) + (critical_hits * 20)
+
+            # Extra escalation for classic payout + credential theft combo
+            payout_terms = ["lottery", "won", "scratch card", "claim", "reward", "prize", "लॉटरी", "इनाम", "दावा"]
+            credential_terms = ["upi pin", "otp", "cvv", "pin", "password", "पिन", "ओटीपी", "पासवर्ड"]
+            if any(t in message_lower for t in payout_terms) and any(t in message_lower for t in credential_terms):
+                scores["Lottery Scam"] = max(scores["Lottery Scam"], 80)
+
             if scores:
                 fraud_type = max(scores, key=scores.get)
-                confidence = scores[fraud_type]
-                
-                # Only consider it a fraud if confidence >= 15% (lower threshold)
-                # Exception: Phishing needs 10% since it has many keywords
-                min_threshold = 10 if fraud_type == "Phishing" else 15
-                
-                if confidence < min_threshold:
+                confidence = min(scores[fraud_type], 100.0)
+                if confidence < 20:
                     fraud_type = "Normal"
-                    confidence = 0
+                    confidence = 0.0
             else:
                 fraud_type = "Normal"
-                confidence = 0
-            
+                confidence = 0.0
+
             logger.info(f"Fraud classification: {fraud_type} ({confidence:.2f}%)")
             return fraud_type, confidence
-                
+
         except Exception as e:
             logger.error(f"Fraud classification error: {e}")
             return "Unknown", 0.0
@@ -340,7 +400,14 @@ class FraudDetectionSystem:
                 "transfer": "FINANCIAL",
                 "account": "ACCOUNT",
                 "secure": "ACTION",
-                "update": "ACTION"
+                "update": "ACTION",
+                "बधाई": "REWARD",
+                "क्लेम": "ACTION",
+                "फीस": "FINANCIAL",
+                "भेजें": "ACTION",
+                "लॉटरी": "SCAM_TYPE",
+                "पिन": "FINANCIAL",
+                "ओटीपी": "FINANCIAL"
             }
             
             message_lower = message.lower()
@@ -399,6 +466,43 @@ class FraudDetectionSystem:
             return "Suspicious"
         else:
             return "High Risk"
+
+    def apply_contextual_risk_boost(
+        self,
+        message: str,
+        fraud_type: str,
+        risk_score: float,
+        entities: List[Dict]
+    ) -> float:
+        """Apply deterministic boosts for known scam combinations (English + Hindi)."""
+        message_lower = message.lower()
+        boosted = risk_score
+
+        lottery_terms = ["lottery", "लॉटरी", "scratch card", "स्क्रैच", "jackpot", "इनाम", "बधाई", "claim", "क्लेम"]
+        payment_terms = ["fee", "processing fee", "payment", "pay", "transfer", "send", "फीस", "भुगतान", "जमा", "भेजें"]
+        credential_terms = ["upi pin", "otp", "cvv", "pin", "password", "पिन", "ओटीपी", "पासवर्ड"]
+        bank_terms = ["bank", "बैंक", "collect", "collect request", "approve", "transfer", "स्थानांतरण"]
+
+        has_lottery = any(term in message_lower for term in lottery_terms)
+        has_payment = any(term in message_lower for term in payment_terms)
+        has_credentials = any(term in message_lower for term in credential_terms)
+        has_bank_flow = any(term in message_lower for term in bank_terms)
+
+        money_entities = sum(1 for e in entities if e.get("type") == "MONEY")
+
+        # Lottery + demand for money/credentials is almost always a scam.
+        if (fraud_type == "Lottery Scam" or has_lottery) and (has_payment or has_credentials):
+            boosted = max(boosted, 75.0)
+
+        # Credential theft + banking flow is severe.
+        if has_credentials and has_bank_flow:
+            boosted = max(boosted, 80.0)
+
+        # Multiple money amounts in scam context increase risk.
+        if money_entities >= 2 and (has_lottery or has_payment):
+            boosted = min(boosted + 10.0, 100.0)
+
+        return round(min(boosted, 100.0), 2)
 
     def generate_reasoning(
         self,
@@ -475,6 +579,14 @@ class FraudDetectionSystem:
                 len(entities)
             )
 
+            # Step 4b: Contextual boost for strong multilingual scam patterns
+            risk_score = self.apply_contextual_risk_boost(
+                message,
+                fraud_type,
+                risk_score,
+                entities
+            )
+
             # Step 5: Risk Level Classification
             risk_level = self.classify_risk_level(risk_score)
 
@@ -485,6 +597,9 @@ class FraudDetectionSystem:
                 fraud_confidence,
                 entities
             )
+
+            if risk_score >= 70 and fraud_type == "Lottery Scam":
+                reasoning.append("Lottery/reward claim combined with money or credential request indicates high scam probability")
 
             # Step 7: Safety Advice
             safety_advice = self.get_safety_advice(fraud_type)
